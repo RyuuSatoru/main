@@ -5,6 +5,8 @@ export interface User {
   score: number;
   joinDate: string;
   role: 'user' | 'admin';
+  studentId?: string;
+  avatar?: string;
 }
 
 export interface Challenge {
@@ -29,6 +31,7 @@ export interface Contest {
   isActive: boolean;
   maxAttempts: number;
   createdBy: string;
+  isPublic: boolean;
 }
 
 export interface UserProgress {
@@ -46,7 +49,43 @@ export interface ContestAttempt {
   startTime: string;
   endTime?: string;
   score: number;
-  answers: { challengeId: string; answer: string; isCorrect: boolean }[];
+  answers: { challengeId: string; answer: string; isCorrect: boolean; timeSpent: number }[];
   timeSpent: number; // in seconds
   isCompleted: boolean;
+  accuracy: number; // percentage
+  speedBonus: number;
+}
+
+export interface Event {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+  isPublished: boolean;
+  tags: string[];
+}
+
+export interface ForumTopic {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+  replies: ForumReply[];
+  tags: string[];
+  isPinned: boolean;
+}
+
+export interface ForumReply {
+  id: string;
+  content: string;
+  author: string;
+  authorName: string;
+  createdAt: string;
+  topicId: string;
 }

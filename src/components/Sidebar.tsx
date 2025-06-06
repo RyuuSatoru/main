@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, UserPlus, LogIn, Brain, Trophy, LogOut, User, Settings } from 'lucide-react';
+import { Home, UserPlus, LogIn, Brain, Trophy, LogOut, User, Settings, Calendar, MessageSquare } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 const Sidebar: React.FC = () => {
@@ -11,6 +11,8 @@ const Sidebar: React.FC = () => {
     { id: 'login', label: 'Đăng nhập', icon: LogIn, hideWhenLoggedIn: true },
     { id: 'challenges', label: 'Thử thách', icon: Brain, requireAuth: true },
     { id: 'leaderboard', label: 'Bảng xếp hạng', icon: Trophy },
+    { id: 'events', label: 'Sự kiện', icon: Calendar },
+    { id: 'forum', label: 'Diễn đàn', icon: MessageSquare, requireAuth: true },
     { id: 'profile', label: 'Hồ sơ', icon: User, requireAuth: true },
     { id: 'admin', label: 'Quản trị', icon: Settings, requireAuth: true, adminOnly: true },
   ];
@@ -38,8 +40,25 @@ const Sidebar: React.FC = () => {
       {currentUser && (
         <div className="p-4 border-b border-cyan-500/20">
           <div className="bg-slate-800/50 rounded-lg p-3">
-            <p className="text-cyan-300 text-sm font-mono">Xin chào,</p>
-            <p className="text-white font-semibold">{currentUser.username}</p>
+            <div className="flex items-center space-x-3 mb-2">
+              {currentUser.avatar ? (
+                <img 
+                  src={currentUser.avatar} 
+                  alt="Avatar" 
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">
+                    {currentUser.username.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div>
+                <p className="text-cyan-300 text-sm font-mono">Xin chào,</p>
+                <p className="text-white font-semibold text-sm">{currentUser.username}</p>
+              </div>
+            </div>
             <p className="text-green-400 text-sm font-mono">
               Điểm: {currentUser.score}
             </p>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Brain, CheckCircle, XCircle, ArrowRight, Trophy, Clock, Play, Flag, Award } from 'lucide-react';
+import { Brain, CheckCircle, XCircle, ArrowRight, Trophy, Clock, Play, Flag, Award, AlertCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Contest, ContestAttempt } from '../types';
 
@@ -10,7 +10,8 @@ const ChallengesPage: React.FC = () => {
     startContest, 
     submitContestAnswer, 
     finishContest, 
-    getCurrentAttempt 
+    getCurrentAttempt,
+    getUserContestAttempts
   } = useApp();
   
   const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
@@ -19,6 +20,7 @@ const ChallengesPage: React.FC = () => {
   const [selectedAnswer, setSelectedAnswer] = useState('');
   const [textAnswer, setTextAnswer] = useState('');
   const [timeLeft, setTimeLeft] = useState(0);
+  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [feedback, setFeedback] = useState<{ show: boolean; correct: boolean; message: string }>({
     show: false,
     correct: false,
@@ -54,6 +56,7 @@ const ChallengesPage: React.FC = () => {
       setSelectedContest(contest);
       setTimeLeft(contest.timeLimit * 60);
       setCurrentQuestionIndex(0);
+      setQuestionStartTime(Date.now());
       setFeedback({ show: false, correct: false, message: '' });
     }
   };
@@ -63,6 +66,7 @@ const ChallengesPage: React.FC = () => {
     
     const currentQuestion = selectedContest.challenges[currentQuestionIndex];
     const answer = currentQuestion.type === 'multiple-choice' ? selectedAnswer : textAnswer;
+    const questionTime = Math.floor((Date.now() - questionStartTime) / 1000);
     
     if (!answer.trim()) {
       setFeedback({
@@ -73,7 +77,7 @@ const ChallengesPage: React.FC = () => {
       return;
     }
 
-    const isCorrect = submitContestAnswer(currentAttempt.id, currentQuestion.id, answer);
+    const isCorrect = submitContestAnswer(currentAttempt.id, currentQuestion.id, answer, questionTime);
     
     setFeedback({
       show: true,
@@ -90,6 +94,7 @@ const ChallengesPage: React.FC = () => {
   const handleNextQuestion = () => {
     if (currentQuestionIndex < selectedContest!.challenges.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
+      setQuestionStartTime(Date.now());
       setFeedback({ show: false, correct: false, message: '' });
     } else {
       handleFinishContest();
@@ -313,6 +318,8 @@ const ChallengesPage: React.FC = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {contests.filter(c => c.isActive).map((contest) => {
             const existingAttempt = getCurrentAttempt(contest.id);
+            const userAttempts = getUserContestAttempts ? getUserContestAttempts(currentUser.id, contest.id) : [];
+            const hasExceededAttempts = userAttempts.length >= contest.maxAttempts;
             
             return (
               <div key={contest.id} className="bg-slate-800/50 border border-cyan-500/20 rounded-2xl p-6 hover:bg-slate-800/70 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10">
@@ -332,7 +339,9 @@ const ChallengesPage: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400">Lượt thử:</span>
-                    <span className="text-cyan-400 font-mono">{contest.maxAttempts}</span>
+                    <span className="text-cyan-400 font-mono">
+                      {userAttempts.length}/{contest.maxAttempts}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-400">Tổng điểm:</span>
@@ -342,17 +351,33 @@ const ChallengesPage: React.FC = () => {
                   </div>
                 </div>
 
+                {hasExceededAttempts && (
+                  <div className="mb-4 p-3 bg-red-900/20 border border-red-500/50 rounded-lg">
+                    <div className="flex items-center space-x-2 text-red-400">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">Đã hết lượt thử</span>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   onClick={() => handleStartContest(contest)}
-                  disabled={!!existingAttempt}
+                  disabled={!!existingAttempt || hasExceededAttempts}
                   className={`w-full py-3 px-4 rounded-lg font-bold transition-all duration-300 ${
                     existingAttempt
                       ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                      : hasExceededAttempts
+                      ? 'bg-red-600/50 text-red-300 cursor-not-allowed'
                       : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white transform hover:scale-105'
                   }`}
                 >
                   <Play className="w-4 h-4 inline mr-2" />
-                  {existingAttempt ? 'Đang tham gia' : 'Bắt đầu thi'}
+                  {existingAttempt 
+                    ? 'Đang tham gia' 
+                    : hasExceededAttempts 
+                    ? 'Hết lượt' 
+                    : 'Bắt đầu thi'
+                  }
                 </button>
               </div>
             );

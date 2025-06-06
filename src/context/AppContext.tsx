@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { User, Challenge, UserProgress, Contest, ContestAttempt } from '../types';
+import { User, Challenge, UserProgress, Contest, ContestAttempt, Event, ForumTopic, ForumReply } from '../types';
 
 interface AppContextType {
   currentUser: User | null;
@@ -8,6 +8,8 @@ interface AppContextType {
   contests: Contest[];
   userProgress: UserProgress[];
   contestAttempts: ContestAttempt[];
+  events: Event[];
+  forumTopics: ForumTopic[];
   currentPage: string;
   login: (email: string, password: string) => boolean;
   register: (username: string, email: string, password: string) => boolean;
@@ -16,14 +18,23 @@ interface AppContextType {
   submitAnswer: (challengeId: string, answer: string) => boolean;
   getUserScore: (userId: string) => number;
   getLeaderboard: () => User[];
+  getContestLeaderboard: (contestId: string) => User[];
   startContest: (contestId: string) => ContestAttempt | null;
-  submitContestAnswer: (attemptId: string, challengeId: string, answer: string) => boolean;
+  submitContestAnswer: (attemptId: string, challengeId: string, answer: string, timeSpent?: number) => boolean;
   finishContest: (attemptId: string) => void;
   getCurrentAttempt: (contestId: string) => ContestAttempt | null;
+  getUserContestAttempts: (userId: string, contestId: string) => ContestAttempt[];
   createContest: (contest: Omit<Contest, 'id' | 'createdBy'>) => boolean;
   addChallengeToContest: (contestId: string, challenge: Omit<Challenge, 'id' | 'contestId'>) => boolean;
   updateContest: (contestId: string, updates: Partial<Contest>) => boolean;
   deleteContest: (contestId: string) => boolean;
+  updateUserProfile: (userId: string, updates: Partial<User>) => boolean;
+  createEvent: (event: Omit<Event, 'id' | 'author' | 'authorName' | 'createdAt' | 'updatedAt'>) => boolean;
+  updateEvent: (eventId: string, updates: Partial<Event>) => boolean;
+  deleteEvent: (eventId: string) => boolean;
+  createForumTopic: (topic: Omit<ForumTopic, 'id' | 'author' | 'authorName' | 'createdAt' | 'updatedAt' | 'replies' | 'isPinned'>) => boolean;
+  replyToTopic: (topicId: string, content: string) => boolean;
+  pinTopic: (topicId: string) => boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -91,7 +102,8 @@ const mockContests: Contest[] = [
     endDate: '2024-12-31',
     isActive: true,
     maxAttempts: 3,
-    createdBy: 'admin'
+    createdBy: 'admin',
+    isPublic: true
   },
   {
     id: 'contest2',
@@ -103,7 +115,8 @@ const mockContests: Contest[] = [
     endDate: '2024-12-31',
     isActive: true,
     maxAttempts: 2,
-    createdBy: 'admin'
+    createdBy: 'admin',
+    isPublic: true
   }
 ];
 
@@ -114,7 +127,8 @@ const mockUsers: User[] = [
     email: 'explorer@vaic.com',
     score: 150,
     joinDate: '2024-01-15',
-    role: 'user'
+    role: 'user',
+    studentId: 'SV001'
   },
   {
     id: '2',
@@ -122,7 +136,8 @@ const mockUsers: User[] = [
     email: 'wizard@vaic.com',
     score: 120,
     joinDate: '2024-01-20',
-    role: 'user'
+    role: 'user',
+    studentId: 'SV002'
   },
   {
     id: '3',
@@ -130,7 +145,8 @@ const mockUsers: User[] = [
     email: 'master@vaic.com',
     score: 180,
     joinDate: '2024-01-10',
-    role: 'user'
+    role: 'user',
+    studentId: 'SV003'
   },
   {
     id: 'admin',
@@ -142,6 +158,44 @@ const mockUsers: User[] = [
   }
 ];
 
+const mockEvents: Event[] = [
+  {
+    id: '1',
+    title: 'Workshop: Giới thiệu về Machine Learning',
+    content: 'Tham gia workshop miễn phí về Machine Learning dành cho người mới bắt đầu. Chúng ta sẽ cùng nhau khám phá:\n\n• Khái niệm cơ bản về ML\n• Các thuật toán phổ biến\n• Thực hành với Python\n• Q&A với chuyên gia\n\nThời gian: 14:00 - 17:00, Thứ 7 tuần tới\nĐịa điểm: Phòng hội thảo A1, Tòa nhà VAIC\n\nĐăng ký ngay để không bỏ lỡ cơ hội học hỏi!',
+    author: 'admin',
+    authorName: 'Admin',
+    createdAt: '2024-01-20T10:00:00Z',
+    updatedAt: '2024-01-20T10:00:00Z',
+    isPublished: true,
+    tags: ['workshop', 'machine learning', 'beginner']
+  }
+];
+
+const mockForumTopics: ForumTopic[] = [
+  {
+    id: '1',
+    title: 'Thảo luận về tương lai của AI trong giáo dục',
+    content: 'AI đang thay đổi cách chúng ta học và dạy. Các bạn nghĩ sao về việc ứng dụng AI trong giáo dục? Những lợi ích và thách thức là gì?',
+    author: '1',
+    authorName: 'AIExplorer',
+    createdAt: '2024-01-18T09:00:00Z',
+    updatedAt: '2024-01-18T09:00:00Z',
+    replies: [
+      {
+        id: '1',
+        content: '
+        author: '2',
+        authorName: 'TechWizard',
+        createdAt: '2024-01-18T10:30:00Z',
+        topicId: '1'
+      }
+    ],
+    tags: ['AI', 'education', 'future'],
+    isPinned: true
+  }
+];
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(mockUsers);
@@ -149,6 +203,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [contests, setContests] = useState<Contest[]>(mockContests);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [contestAttempts, setContestAttempts] = useState<ContestAttempt[]>([]);
+  const [events, setEvents] = useState<Event[]>(mockEvents);
+  const [forumTopics, setForumTopics] = useState<ForumTopic[]>(mockForumTopics);
   const [currentPage, setCurrentPage] = useState('home');
 
   useEffect(() => {
@@ -192,6 +248,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
     setCurrentPage('home');
+  };
+
+  const updateUserProfile = (userId: string, updates: Partial<User>): boolean => {
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
+    if (currentUser && currentUser.id === userId) {
+      const updatedUser = { ...currentUser, ...updates };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+    }
+    return true;
   };
 
   const submitAnswer = (challengeId: string, answer: string): boolean => {
@@ -241,14 +307,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       score: 0,
       answers: [],
       timeSpent: 0,
-      isCompleted: false
+      isCompleted: false,
+      accuracy: 0,
+      speedBonus: 0
     };
     
     setContestAttempts(prev => [...prev, attempt]);
     return attempt;
   };
 
-  const submitContestAnswer = (attemptId: string, challengeId: string, answer: string): boolean => {
+  const submitContestAnswer = (attemptId: string, challengeId: string, answer: string, timeSpent: number = 0): boolean => {
     const attempt = contestAttempts.find(a => a.id === attemptId);
     const challenge = challenges.find(c => c.id === challengeId);
     
@@ -258,7 +326,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ? answer === challenge.correctAnswer
       : answer.toLowerCase().includes(challenge.correctAnswer.toLowerCase());
     
-    const answerRecord = { challengeId, answer, isCorrect };
+    const answerRecord = { challengeId, answer, isCorrect, timeSpent };
     const updatedAttempt = {
       ...attempt,
       answers: [...attempt.answers.filter(a => a.challengeId !== challengeId), answerRecord],
@@ -275,19 +343,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     
     const endTime = new Date();
     const startTime = new Date(attempt.startTime);
-    const timeSpent = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+    const totalTimeSpent = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
     
-    // Calculate time bonus (faster completion = more points)
+    // Calculate accuracy
+    const correctAnswers = attempt.answers.filter(a => a.isCorrect).length;
+    const accuracy = attempt.answers.length > 0 ? Math.round((correctAnswers / attempt.answers.length) * 100) : 0;
+    
+    // Calculate speed bonus based on time and accuracy
     const contest = contests.find(c => c.id === attempt.contestId);
-    const timeBonus = contest ? Math.max(0, Math.floor((contest.timeLimit * 60 - timeSpent) / 60) * 5) : 0;
+    const timeLimit = contest ? contest.timeLimit * 60 : 1800; // default 30 minutes
+    const timeRatio = Math.max(0, (timeLimit - totalTimeSpent) / timeLimit);
+    const speedBonus = Math.floor(timeRatio * accuracy * 0.5); // Speed bonus based on time saved and accuracy
     
-    const finalScore = attempt.score + timeBonus;
+    const finalScore = attempt.score + speedBonus;
     
     const updatedAttempt = {
       ...attempt,
       endTime: endTime.toISOString(),
-      timeSpent,
+      timeSpent: totalTimeSpent,
       score: finalScore,
+      accuracy,
+      speedBonus,
       isCompleted: true
     };
     
@@ -307,6 +383,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       a.contestId === contestId && 
       !a.isCompleted
     ) || null;
+  };
+
+  const getUserContestAttempts = (userId: string, contestId: string): ContestAttempt[] => {
+    return contestAttempts.filter(a => a.userId === userId && a.contestId === contestId && a.isCompleted);
   };
 
   const createContest = (contestData: Omit<Contest, 'id' | 'createdBy'>): boolean => {
@@ -366,6 +446,119 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return [...users].sort((a, b) => b.score - a.score);
   };
 
+  const getContestLeaderboard = (contestId: string): User[] => {
+    const contestResults = contestAttempts
+      .filter(a => a.contestId === contestId && a.isCompleted)
+      .reduce((acc, attempt) => {
+        const existing = acc.find(r => r.userId === attempt.userId);
+        if (!existing || attempt.score > existing.score) {
+          const user = users.find(u => u.id === attempt.userId);
+          if (user) {
+            acc = acc.filter(r => r.userId !== attempt.userId);
+            acc.push({
+              ...user,
+              score: attempt.score,
+              accuracy: attempt.accuracy,
+              timeSpent: attempt.timeSpent,
+              userId: attempt.userId
+            });
+          }
+        }
+        return acc;
+      }, [] as any[]);
+    
+    return contestResults.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
+      return a.timeSpent - b.timeSpent;
+    });
+  };
+
+  const createEvent = (eventData: Omit<Event, 'id' | 'author' | 'authorName' | 'createdAt' | 'updatedAt'>): boolean => {
+    if (!currentUser || currentUser.role !== 'admin') return false;
+    
+    const newEvent: Event = {
+      ...eventData,
+      id: Date.now().toString(),
+      author: currentUser.id,
+      authorName: currentUser.username,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    setEvents(prev => [...prev, newEvent]);
+    return true;
+  };
+
+  const updateEvent = (eventId: string, updates: Partial<Event>): boolean => {
+    if (!currentUser || currentUser.role !== 'admin') return false;
+    
+    setEvents(prev => prev.map(e => 
+      e.id === eventId 
+        ? { ...e, ...updates, updatedAt: new Date().toISOString() }
+        : e
+    ));
+    return true;
+  };
+
+  const deleteEvent = (eventId: string): boolean => {
+    if (!currentUser || currentUser.role !== 'admin') return false;
+    
+    setEvents(prev => prev.filter(e => e.id !== eventId));
+    return true;
+  };
+
+  const createForumTopic = (topicData: Omit<ForumTopic, 'id' | 'author' | 'authorName' | 'createdAt' | 'updatedAt' | 'replies' | 'isPinned'>): boolean => {
+    if (!currentUser) return false;
+    
+    const newTopic: ForumTopic = {
+      ...topicData,
+      id: Date.now().toString(),
+      author: currentUser.id,
+      authorName: currentUser.username,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      replies: [],
+      isPinned: false
+    };
+    
+    setForumTopics(prev => [...prev, newTopic]);
+    return true;
+  };
+
+  const replyToTopic = (topicId: string, content: string): boolean => {
+    if (!currentUser) return false;
+    
+    const newReply: ForumReply = {
+      id: Date.now().toString(),
+      content,
+      author: currentUser.id,
+      authorName: currentUser.username,
+      createdAt: new Date().toISOString(),
+      topicId
+    };
+    
+    setForumTopics(prev => prev.map(t => 
+      t.id === topicId 
+        ? { 
+            ...t, 
+            replies: [...t.replies, newReply],
+            updatedAt: new Date().toISOString()
+          }
+        : t
+    ));
+    return true;
+  };
+
+  const pinTopic = (topicId: string): boolean => {
+    if (!currentUser || currentUser.role !== 'admin') return false;
+    
+    setForumTopics(prev => prev.map(t => 
+      t.id === topicId ? { ...t, isPinned: !t.isPinned } : t
+    ));
+    return true;
+  };
+
   return (
     <AppContext.Provider value={{
       currentUser,
@@ -374,6 +567,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       contests,
       userProgress,
       contestAttempts,
+      events,
+      forumTopics,
       currentPage,
       login,
       register,
@@ -382,14 +577,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       submitAnswer,
       getUserScore,
       getLeaderboard,
+      getContestLeaderboard,
       startContest,
       submitContestAnswer,
       finishContest,
       getCurrentAttempt,
+      getUserContestAttempts,
       createContest,
       addChallengeToContest,
       updateContest,
-      deleteContest
+      deleteContest,
+      updateUserProfile,
+      createEvent,
+      updateEvent,
+      deleteEvent,
+      createForumTopic,
+      replyToTopic,
+      pinTopic
     }}>
       {children}
     </AppContext.Provider>

@@ -7,6 +7,8 @@ import ChallengesPage from './components/ChallengesPage';
 import LeaderboardPage from './components/LeaderboardPage';
 import ProfilePage from './components/ProfilePage';
 import AdminPage from './components/AdminPage';
+import EventsPage from './components/EventsPage';
+import ForumPage from './components/ForumPage';
 
 const AppRouter: React.FC = () => {
   const { currentPage } = useApp();
@@ -23,6 +25,10 @@ const AppRouter: React.FC = () => {
         return <ChallengesPage />;
       case 'leaderboard':
         return <LeaderboardPage />;
+      case 'events':
+        return <EventsPage />;
+      case 'forum':
+        return <ForumPage />;
       case 'profile':
         return <ProfilePage />;
       case 'admin':

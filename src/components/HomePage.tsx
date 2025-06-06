@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, Users, Trophy, Brain, BookOpen, Code, Lightbulb, Target, Calendar, Star, ArrowRight, CheckCircle } from 'lucide-react';
+import { Users, Trophy, Brain, BookOpen, Code, Lightbulb, Target, Calendar, Star, ArrowRight, CheckCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 const HomePage: React.FC = () => {
@@ -79,11 +79,6 @@ const HomePage: React.FC = () => {
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center space-x-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full px-6 py-2 mb-8">
-            <Zap className="w-4 h-4 text-cyan-400" />
-            <span className="text-cyan-300 font-mono text-sm">Powered by AI</span>
-          </div>
-          
           <h1 className="text-6xl md:text-7xl font-bold text-white mb-6 font-mono">
             Chào mừng đến với
             <span className="block bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
@@ -103,7 +98,7 @@ const HomePage: React.FC = () => {
             <span className="font-mono">
               {currentUser ? 'Bắt đầu thử thách' : 'Tham gia ngay'}
             </span>
-            <Zap className="w-5 h-5 group-hover:animate-pulse" />
+            <Brain className="w-5 h-5 group-hover:animate-pulse" />
             
             {/* Glowing effect */}
             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-300" />
