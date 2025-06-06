@@ -1,0 +1,294 @@
+import React, { useState } from 'react';
+import { User, Trophy, Calendar, Award, Clock, Target, Edit, Save, X } from 'lucide-react';
+import { useApp } from '../context/AppContext';
+
+const ProfilePage: React.FC = () => {
+  const { currentUser, contestAttempts, contests, getLeaderboard } = useApp();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    username: currentUser?.username || '',
+    email: currentUser?.email || ''
+  });
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-8">
+        <div className="text-center">
+          <User className="w-16 h-16 text-cyan-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-4">Cần đăng nhập</h2>
+          <p className="text-slate-300">Vui lòng đăng nhập để xem hồ sơ.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const userAttempts = contestAttempts.filter(a => a.userId === currentUser.id && a.isCompleted);
+  const leaderboard = getLeaderboard();
+  const userRank = leaderboard.findIndex(u => u.id === currentUser.id) + 1;
+  
+  const totalAttempts = userAttempts.length;
+  const averageScore = totalAttempts > 0 ? Math.round(userAttempts.reduce((sum, a) => sum + a.score, 0) / totalAttempts) : 0;
+  const bestScore = totalAttempts > 0 ? Math.max(...userAttempts.map(a => a.score)) : 0;
+  const totalTimeSpent = userAttempts.reduce((sum, a) => sum + a.timeSpent, 0);
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours}h ${mins}m`;
+    }
+    return `${mins}m`;
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 150) return 'text-yellow-400';
+    if (score >= 100) return 'text-green-400';
+    if (score >= 50) return 'text-cyan-400';
+    return 'text-slate-400';
+  };
+
+  const getRankColor = (rank: number) => {
+    if (rank === 1) return 'text-yellow-400';
+    if (rank <= 3) return 'text-orange-400';
+    if (rank <= 10) return 'text-cyan-400';
+    return 'text-slate-400';
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center space-x-2 bg-cyan-500/10 border border-cyan-500/20 rounded-full px-6 py-2 mb-4">
+            <User className="w-4 h-4 text-cyan-400" />
+            <span className="text-cyan-300 font-mono text-sm">Profile</span>
+          </div>
+          <h1 className="text-4xl font-bold text-white font-mono mb-2">Hồ sơ cá nhân</h1>
+          <p className="text-slate-300">Thông tin và thành tích của bạn</p>
+        </div>
+
+        {/* Profile Card */}
+        <div className="bg-slate-800/50 border border-cyan-500/20 rounded-2xl p-8 mb-8">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center space-x-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">
+                  {currentUser.username.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              
+              <div>
+                {isEditing ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={editForm.username}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))}
+                      className="bg-slate-700/50 border border-slate-600 rounded-lg py-2 px-3 text-white placeholder-slate-400 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                      placeholder="Tên người dùng"
+                    />
+                    <input
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                      className="bg-slate-700/50 border border-slate-600 rounded-lg py-2 px-3 text-white placeholder-slate-400 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                      placeholder="Email"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-2xl font-bold text-white mb-1">{currentUser.username}</h2>
+                    <p className="text-slate-300 mb-2">{currentUser.email}</p>
+                    <div className="flex items-center space-x-4 text-sm">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-4 h-4 text-slate-400" />
+                        <span className="text-slate-400">
+                          Tham gia: {new Date(currentUser.joinDate).toLocaleDateString('vi-VN')}
+                        </span>
+                      </div>
+                      {currentUser.role === 'admin' && (
+                        <span className="px-2 py-1 bg-purple-900/20 text-purple-400 border border-purple-500/50 rounded text-xs font-mono">
+                          ADMIN
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex space-x-2">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={() => {
+                      // Here you would typically call an update function
+                      setIsEditing(false);
+                    }}
+                    className="flex items-center space-x-1 bg-green-600 hover:bg-green-500 text-white py-2 px-3 rounded-lg transition-colors"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span className="text-sm">Lưu</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditForm({
+                        username: currentUser.username,
+                        email: currentUser.email
+                      });
+                    }}
+                    className="flex items-center space-x-1 bg-slate-600 hover:bg-slate-500 text-white py-2 px-3 rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                    <span className="text-sm">Hủy</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded-lg transition-colors"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span className="text-sm">Chỉnh sửa</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-slate-800/50 border border-cyan-500/20 rounded-xl p-6 text-center">
+            <Trophy className="w-8 h-8 text-cyan-400 mx-auto mb-3" />
+            <div className={`text-2xl font-bold font-mono ${getScoreColor(currentUser.score)}`}>
+              {currentUser.score}
+            </div>
+            <div className="text-slate-400 text-sm">Tổng điểm</div>
+          </div>
+          
+          <div className="bg-slate-800/50 border border-green-500/20 rounded-xl p-6 text-center">
+            <Award className="w-8 h-8 text-green-400 mx-auto mb-3" />
+            <div className={`text-2xl font-bold font-mono ${getRankColor(userRank)}`}>
+              #{userRank}
+            </div>
+            <div className="text-slate-400 text-sm">Xếp hạng</div>
+          </div>
+          
+          <div className="bg-slate-800/50 border border-purple-500/20 rounded-xl p-6 text-center">
+            <Target className="w-8 h-8 text-purple-400 mx-auto mb-3" />
+            <div className="text-2xl font-bold text-white font-mono">{totalAttempts}</div>
+            <div className="text-slate-400 text-sm">Lượt thi</div>
+          </div>
+          
+          <div className="bg-slate-800/50 border border-yellow-500/20 rounded-xl p-6 text-center">
+            <Clock className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
+            <div className="text-2xl font-bold text-white font-mono">{formatTime(totalTimeSpent)}</div>
+            <div className="text-slate-400 text-sm">Thời gian học</div>
+          </div>
+        </div>
+
+        {/* Performance Stats */}
+        <div className="grid md:grid-cols-2 gap-8 mb-8">
+          <div className="bg-slate-800/50 border border-cyan-500/20 rounded-2xl p-6">
+            <h3 className="text-xl font-bold text-white mb-4 font-mono">Thống kê hiệu suất</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-300">Điểm trung bình:</span>
+                <span className="text-cyan-400 font-mono font-bold">{averageScore}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-300">Điểm cao nhất:</span>
+                <span className="text-green-400 font-mono font-bold">{bestScore}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-300">Tỷ lệ hoàn thành:</span>
+                <span className="text-yellow-400 font-mono font-bold">
+                  {totalAttempts > 0 ? '100%' : '0%'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800/50 border border-cyan-500/20 rounded-2xl p-6">
+            <h3 className="text-xl font-bold text-white mb-4 font-mono">Thành tích gần đây</h3>
+            <div className="space-y-3">
+              {userAttempts.slice(-3).reverse().map((attempt, index) => {
+                const contest = contests.find(c => c.id === attempt.contestId);
+                return (
+                  <div key={attempt.id} className="flex justify-between items-center py-2 border-b border-slate-700 last:border-b-0">
+                    <div>
+                      <div className="text-white font-medium text-sm">{contest?.title}</div>
+                      <div className="text-slate-400 text-xs">
+                        {new Date(attempt.endTime!).toLocaleDateString('vi-VN')}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-green-400 font-mono font-bold">{attempt.score}</div>
+                      <div className="text-slate-400 text-xs">{formatTime(attempt.timeSpent)}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {userAttempts.length === 0 && (
+                <div className="text-center py-4">
+                  <p className="text-slate-400 text-sm">Chưa có lượt thi nào</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Contest History */}
+        <div className="bg-slate-800/50 border border-cyan-500/20 rounded-2xl p-6">
+          <h3 className="text-xl font-bold text-white mb-6 font-mono">Lịch sử thi đấu</h3>
+          
+          {userAttempts.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-700">
+                    <th className="text-left py-3 px-4 text-cyan-300 font-mono text-sm">Cuộc thi</th>
+                    <th className="text-left py-3 px-4 text-cyan-300 font-mono text-sm">Điểm</th>
+                    <th className="text-left py-3 px-4 text-cyan-300 font-mono text-sm">Thời gian</th>
+                    <th className="text-left py-3 px-4 text-cyan-300 font-mono text-sm">Ngày thi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userAttempts.reverse().map((attempt) => {
+                    const contest = contests.find(c => c.id === attempt.contestId);
+                    return (
+                      <tr key={attempt.id} className="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
+                        <td className="py-3 px-4 text-white">{contest?.title}</td>
+                        <td className="py-3 px-4">
+                          <span className={`font-mono font-bold ${getScoreColor(attempt.score)}`}>
+                            {attempt.score}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-300 font-mono">
+                          {formatTime(attempt.timeSpent)}
+                        </td>
+                        <td className="py-3 px-4 text-slate-400 font-mono text-sm">
+                          {new Date(attempt.endTime!).toLocaleDateString('vi-VN')}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Trophy className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+              <h4 className="text-lg font-bold text-slate-400 mb-2">Chưa có lịch sử thi đấu</h4>
+              <p className="text-slate-500">Hãy tham gia các cuộc thi để xây dựng lịch sử của bạn!</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ProfilePage;
